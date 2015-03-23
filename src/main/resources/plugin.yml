@@ -1,0 +1,8 @@
+name: ${project.name}
+version: ${project.version}
+description: ${project.description}
+author: nicka101
+load: startup
+website: "${project.url}"
+main: ${project.groupId}.${project.artifactId}.${project.artifactId}
+commands:
