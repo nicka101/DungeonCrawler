@@ -10,9 +10,10 @@ import org.bukkit.block.Block;
 import org.bukkit.craftbukkit.v1_8_R2.block.CraftCreatureSpawner;
 import org.bukkit.entity.EntityType;
 import org.bukkit.generator.BlockPopulator;
-import org.bukkit.util.noise.SimplexNoiseGenerator;
-import org.bukkit.util.noise.SimplexOctaveGenerator;
+import org.bukkit.util.noise.PerlinNoiseGenerator;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.util.Random;
 import java.util.WeakHashMap;
@@ -22,51 +23,47 @@ import java.util.WeakHashMap;
  */
 public class ChallengingDungeonPopulator extends BlockPopulator {
 
-    //private WeakHashMap<World, SimplexOctaveGenerator> noiseGenerators = new WeakHashMap<>();
+    private WeakHashMap<World, PerlinNoiseGenerator> noiseGenerators = new WeakHashMap<>();
+    private int inThreshold = 0;
+    private int outThreshold = 0;
 
     @Override
-    public void populate(World world, Random random, Chunk chunk) {
-        ChunkCoords self = new ChunkCoords(chunk);
-        ChunkCoords adjacent = DungeonCrawler.Instance.adjacentToDungeonChunk(self);
+    public void populate(World world, Random random, Chunk chunk){
+        Chunk adjacent = DungeonCrawler.Instance.adjacentToDungeonChunk(chunk);
 
-        if(adjacent != null && random.nextInt(20) > 12){
-            generateDungeon(random, chunk, world.getChunkAt(adjacent.x, adjacent.z), self);
-            return;
-        }
-        if(random.nextInt(1000) < 10){
-            generateDungeon(random, chunk, null, self);
-        }
-        /*SimplexOctaveGenerator generator;
+        PerlinNoiseGenerator generator;
         if(noiseGenerators.containsKey(world)){
             generator = noiseGenerators.get(world);
         } else {
-            generator = new SimplexOctaveGenerator(world, 8);
+            generator = new PerlinNoiseGenerator(world);
             noiseGenerators.put(world, generator);
         }
-        double noise = generator.noise(self.x, self.z, 2, 5);
-        if(noise < -0.945 || (adjacent != null && Math.abs(noise) < 0.07)){
-            boolean generateLower = random.nextInt(20) == 8;
-            int dungeonHeight = DungeonCrawler.Instance.getDungeonHeight(self);
-            generateDungeonPart(chunk, random, dungeonHeight, adjacent == null ? null : world.getChunkAt(adjacent.x, adjacent.z));
-            if(generateLower){
+        int dungeonHeight = DungeonCrawler.Instance.getDungeonHeight(chunk);
+        double noise = Math.abs(generator.noise(chunk.getX(), dungeonHeight, chunk.getZ()));
+        if(noise > 0.63 || (adjacent != null && noise < 0.1)){
+            generateDungeon(random, chunk, adjacent);
+            if(random.nextInt(20) == 8){
                 generatePathToNextFloor(chunk, random, dungeonHeight);
                 generateDungeonPart(chunk, random, dungeonHeight - 15, null);
             }
-        }*/
+            inThreshold++;
+        } else {
+            outThreshold++;
+        }
+        DungeonCrawler.logPluginMsg("Threshold Percentage: " + (double)inThreshold * 100/ outThreshold);
     }
 
-    private void generateDungeon(Random random, Chunk thisChunk, Chunk adjacentChunk, ChunkCoords self){
+    private void generateDungeon(@Nonnull Random random, @Nonnull Chunk thisChunk, @Nullable Chunk adjacentChunk){
         int generateLowerChance = random.nextInt(20);
-        boolean generateLower =  generateLowerChance > 8 && generateLowerChance < 12;
-        int dungeonHeight = DungeonCrawler.Instance.getDungeonHeight(self);
-        generateDungeonPart(thisChunk, random, dungeonHeight, adjacentChunk == null ? null : adjacentChunk);
-        if(generateLower){
+        int dungeonHeight = DungeonCrawler.Instance.getDungeonHeight(thisChunk);
+        generateDungeonPart(thisChunk, random, dungeonHeight, adjacentChunk);
+        if(generateLowerChance > 8 && generateLowerChance < 12){
             generateDungeonPart(thisChunk, random, dungeonHeight - 15, null);
             generatePathToNextFloor(thisChunk, random, dungeonHeight);
         }
     }
 
-    private void generateDungeonPart(Chunk c, Random random, int height, Chunk adjacent){
+    private void generateDungeonPart(@Nonnull Chunk c, @Nonnull Random random, int height, @Nullable Chunk adjacent){
         int exemptX = -1, exemptZ = -1;
         if(adjacent != null){
             int xDiff = c.getX() - adjacent.getX();
@@ -76,14 +73,14 @@ public class ChallengingDungeonPopulator extends BlockPopulator {
             if(exemptX != -1){
                 for(int y = height + 1; y < height + 6; y++) {
                     for (int z = 0; z < 15; z++) {
-                        adjacent.getBlock(exemptX == 15 ? 0 : 15, y, z).setType(Material.AIR);
+                        adjacent.getBlock(exemptX == 15 ? 0 : 15, y, z).setType(Material.AIR, false);
                     }
                 }
             }
             if(exemptZ != -1){
                 for(int y = height + 1; y < height + 6; y++) {
                     for (int x = 0; x < 15; x++) {
-                        adjacent.getBlock(x, y, exemptZ == 15 ? 0 : 15).setType(Material.AIR);
+                        adjacent.getBlock(x, y, exemptZ == 15 ? 0 : 15).setType(Material.AIR, false);
                     }
                 }
             }
@@ -121,7 +118,7 @@ public class ChallengingDungeonPopulator extends BlockPopulator {
             for(int y = height - 9; y <= height; y++){
                 for(int z = 5; z < 8; z++){
                     Block b = c.getBlock(x, y, z);
-                    if(x == 6 && z == 6) b.setType(Material.AIR);
+                    if(x == 6 && z == 6) b.setType(Material.AIR, false);
                     else generateWallBlock(random, b, false);
                 }
             }
@@ -141,7 +138,7 @@ public class ChallengingDungeonPopulator extends BlockPopulator {
                 b.setTypeIdAndData(Material.SMOOTH_BRICK.getId(), (byte) 2, false);
                 break;
             default:
-                b.setType(floor ? Material.GRASS : Material.AIR);
+                b.setType(floor ? Material.GRASS : Material.AIR, false);
                 break;
         }
     }

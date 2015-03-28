@@ -17,7 +17,7 @@ public class DungeonCrawler extends JavaPlugin {
 
     protected static DungeonCrawler Instance;
     private static Logger logger = Bukkit.getLogger();
-    protected static HashMap<ChunkCoords, Integer> dungeonMap = new HashMap<>();
+    protected static HashMap<Chunk, Integer> dungeonMap = new HashMap<>();
 
     private PluginDescriptionFile pdfFile;
 
@@ -49,10 +49,14 @@ public class DungeonCrawler extends JavaPlugin {
         logger.info(String.format("[%s] %s", pdfFile.getName(), message));
     }
 
-    protected ChunkCoords adjacentToDungeonChunk(ChunkCoords c){
-        for(ChunkCoords chunk : dungeonMap.keySet()){
-            if((chunk.x == c.x && (chunk.z == c.z + 1 || chunk.z == c.z - 1)) ||
-                    (chunk.z == c.z && (chunk.x == c.x + 1 || chunk.x == c.x - 1))){
+    protected Chunk adjacentToDungeonChunk(Chunk c){
+        int cx = c.getX();
+        int cz = c.getZ();
+        for(Chunk chunk : dungeonMap.keySet()){
+            int x = chunk.getX();
+            int z = chunk.getZ();
+            if((x == cx && (z == cz + 1 || z == cz - 1)) ||
+                    (z == cz && (x == cx + 1 || x == cx - 1))){
                 return chunk;
             }
         }
@@ -60,10 +64,10 @@ public class DungeonCrawler extends JavaPlugin {
     }
 
     protected void addDungeonChunk(Chunk c, int height){
-        dungeonMap.put(new ChunkCoords(c), height);
+        dungeonMap.put(c, height);
     }
 
-    protected int getDungeonHeight(ChunkCoords self){
+    protected int getDungeonHeight(Chunk self){
         return dungeonMap.getOrDefault(adjacentToDungeonChunk(self), 45);
     }
 }
