@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.nicka101</groupId>
     <artifactId>DungeonCrawler</artifactId>
-    <version>1.2.73-DEV</version>
+    <version>1.2.88-DEV</version>
     <name>DungeonCrawler</name>
     <description>Makes dungeons more challenging to conquer and creates some unique items as rewards in them</description>
     <url>https://cloudbro.net</url>
